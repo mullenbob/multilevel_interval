@@ -1,0 +1,9 @@
+ ga solution min 1.9600000407e+02 max 2.0399999999e+02  fvalue min 5.4429717345e-05  time 1.692239e+01 function evals 93399
+ ga solution min 1.9600000129e+02 max 2.0399999999e+02  fvalue max 6.4621275190e-05  time 1.906139e+01 function evals 107269
+
+Nodal information - optimization model
+Node   X      Y     Restraints       Fx          Fy           U-x    U-y
+ 1    0.0    0.0    0    0           0.0          0.0                    0               0
+ 2    1.0    0.0    1    0           0.0          0.0           2.689276e-05               0
+ 3    0.0    0.8    1    1          10.0          0.0           9.076319e-05      1.5127214e-05
+ 4    1.0    0.8    1    1           0.0          0.0           6.4621264e-05      -1.5305068e-05

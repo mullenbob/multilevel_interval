@@ -1,0 +1,9 @@
+ particle swarm solution min 1.9600000000e+02 max 2.0400000000e+02  fvalue min 5.4429661210e-05  time 8.857870e-01 function evals 2800
+ particle swarm solution min 1.9600000000e+02 max 2.0400000000e+02  fvalue min 6.4621366324e-05  time 9.018984e-01 function evals 3100
+
+Nodal information - optimization model
+Node   X      Y     Restraints       Fx          Fy           U-x    U-y
+ 1    0.0    0.0    0    0           0.0          0.0                    0               0
+ 2    1.0    0.0    1    0           0.0          0.0           2.6892842e-05               0
+ 3    0.0    0.8    1    1          10.0          0.0           9.0763343e-05      1.5127224e-05
+ 4    1.0    0.8    1    1           0.0          0.0           6.4621366e-05      -1.530506e-05
