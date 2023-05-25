@@ -32,7 +32,7 @@ global beta;
 format long;
 %set counter for evaluation of function
 iii=0;
-name="popova20group"
+name="popova5group"
 
 inp= fopen(name+'.inp','r');
 out =fopen(name+'optga.out','w');

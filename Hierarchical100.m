@@ -9,7 +9,7 @@ clc
 format long
 tic
 intvalinit('DisplayInfsup');
-name="popova20group"
+name="popova1group"
 inp= fopen(name+'.inp','r');
 out =fopen(name+'.out','w');
 

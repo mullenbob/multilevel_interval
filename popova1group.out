@@ -1,7 +1,7 @@
-fixed point interval solution time  1.535201e-01
+fixed point interval solution time  1.303755e-01
 Combinatorial solution ran
 Number of combinations force 2, combinations E 64, combinations A (groups) 16
-vertex solution time  3.418525e-01
+vertex solution time  3.764045e-01
 Nodal information - Assembled  model
 Node   X      Y     Restraints       Fx          Fy           beta-x    beta-y
  1    0.0    0.0    0    0           0.0          0.0           0.000      0.000
