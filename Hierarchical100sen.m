@@ -25,8 +25,8 @@ global gamma;
 global ngroups;
 global beta;
 global nodeid;
-name="popova1group"
-name="hierarchical100"
+name="popova20group"
+
 
 %set counter for evaluation of function
 iii=0;

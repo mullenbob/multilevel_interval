@@ -1,0 +1,27 @@
+Program hybrid interval  particle swarm - sensitivity 
+ input file name popova1group 
+Nodal information - Assembled  model
+Node   X      Y     Restraints       Fx          Fy           beta-x    beta-y
+ 1    0.0    0.0    0    0           0.0          0.0           0.000      0.000
+ 2    1.0    0.0    1    0           0.0          0.0           0.000      0.000
+ 3    0.0    0.8    1    1          10.0          0.0           0.050      0.000
+ 4    1.0    0.8    1    1           0.0          0.0           0.000      0.000
+Element information- Assembled model
+Element    Nodes    Area            E        alfa      group no.    group gamma 
+ 1         1   2    0.001000   2.000e+08   0.02000          1           0.00980
+ 2         3   4    0.001000   2.000e+08   0.02000          1           0.00980
+ 3         1   3    0.001000   2.000e+08   0.02000          2           0.00980
+ 4         2   4    0.001000   2.000e+08   0.02000          2           0.00980
+ 5         1   4    0.001000   2.000e+08   0.02000          3           0.00980
+ 6         2   3    0.001000   2.000e+08   0.02000          4           0.00980
+Groups Interval Solution
+Number of Groups
+ 4
+Group Number        Group Uncertainty   
+ 1                       0.00980    
+ 2                       0.00980    
+ 3                       0.00980    
+ 4                       0.00980    
+hybrid2 particle swarm - sensitivity one angle with range 0.785398
+ particle swarm solution angle  7.8539816340e-01   fvalue min 3.1929232973e-05  time 2.979251e-01 function evals 220
+ particle swarm solution angle  -1.6608703492e-01   fvalue min 6.5517750537e-05  time 4.752784e-01 function evals 440

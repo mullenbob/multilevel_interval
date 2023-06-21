@@ -1,4 +1,4 @@
-%LINEAR INTERVAL FINTE ELEMENT ANALYSIS OF A PLANE TRUSS
+%LINEAR INTERVAL FINTE ELEMaANALYSIS OF A Three dimensional  TRUSS
 %SECONDARY VARIABLES WITH THE SAME ACCURACY OF THE PRIMARY ONES
 %A PROGRAM BY Dr. RAMA RAO MALLELA , Prof. RAFI MUHANNA AND Prof.  ROBERT MULLEN
 % addpath 'G:\My Drive\Documents\MATLAB\Intlab_V8\Intlab_V8'
@@ -9,7 +9,7 @@ clc
 format long
 tic
 intvalinit('DisplayInfsup');
-name="popova1"
+name="threeD1"
 inp= fopen(name+'.inp','r');
 out =fopen(name+'.out','w');
 
@@ -21,35 +21,46 @@ ne  = mat1(2); %number of elements
 %x and y coodinates of nodes for assembled model
 xA = zeros(nnA,1);
 yA = zeros(nnA,1);
+zA = zeros(nnA,1);
 nn = 2*ne;    %number of nodes - EBE model
 %x and y coodinates of nodes for EBE model
 xEBE = zeros(nn,1);
 yEBE = zeros(nn,1);
-ndofA=2*nnA; %dof for EBE model
-ndof =2*nn; %dof for EBE model
+zEBE = zeros(nn,1);
+ndofA=3*nnA; %dof for assembled model
+ndof =3*nn; %dof for EBE model
 %reading nodal information for the assembled model
-[mat1] = fscanf(inp,'%d %f %f %d %d %e %e  %f %f',[9,nnA]);
+[mat1] = fscanf(inp,'%d %f %f %f %d %d %d %e %e %e  %f %f %f',[13,nnA]);
 mat1 = mat1';
 xA = mat1(:,2);
 yA = mat1(:,3);
+zA = mat1(:,4);
 %nodal information for assembled model
-resxA = mat1(:,4); %x restraint for assembled model
-resyA = mat1(:,5); %x restraint for assembled model
-%x and y components of forces for assembled model
-fxA = mat1(:,6);
-fyA = mat1(:,7);
+resxA = mat1(:,5); %x restraint for assembled model
+resyA = mat1(:,6); %y restraint for assembled model
+reszA = mat1(:,7); %z restraint for assembled model
+%components of forces for assembled model
+fxA = mat1(:,8);
+fyA = mat1(:,9);
+fzA = mat1(:,10);
 %uncertainty in forces for assembled model
-betaxA=mat1(:,8);
-betayA=mat1(:,9);
+betaxA=mat1(:,11);
+betayA=mat1(:,12);
+betazA=mat1(:,13);
+
 bnA = 0; %number of restrained dof in assembled model
 for i=1:nnA
    if(resxA(i)==0) %x-dof is restrained
         bnA = bnA+1;
-        ifixA(bnA) = 2*i-1;
+        ifixA(bnA) = 3*i-2;
     end
    if(resyA(i)==0) %y-dof is restrained
         bnA = bnA+1;
-        ifixA(bnA) = 2*i;
+        ifixA(bnA) = 3*i-1;
+   end
+   if(reszA(i)==0) %z-dof is restrained
+        bnA = bnA+1;
+        ifixA(bnA) = 3*i;
    end
 end
 A       = zeros(ne,1);
@@ -75,8 +86,9 @@ if (ng >0)
 [mat3] = fscanf(inp,'%d %f',[2,ng]);
 mat3 = mat3';
 gamma1 = mat3(:,2);% group uncertainty
-% build new values of gammao using group data
-gammao=zeros(ne,1);
+% build new values of gammao using group data  
+% conversion
+gammao=zeros(ne,1);  
 for i=1:ne
     j=gn(i);
     if (j> 0)
@@ -94,8 +106,9 @@ tic
 Alfa = infsup(1-alfaA,1+alfaA);
 BetaxA = infsup(1-betaxA,1+betaxA);
 BetayA = infsup(1-betayA,1+betayA);
+BetazA = infsup(1-betazA,1+betazA);
 nforce=0;
-ForceA=infsup(zeros(2*nnA,1),zeros(2*nnA,1)); %allocate space for ForceA  RLM 9/8/22
+ForceA=infsup(zeros(3*nnA,1),zeros(3*nnA,1)); %allocate space for ForceA  RLM 9/8/22
 for i=1:nnA
   if(abs(fxA(i))>0.0)
       nforce = nforce+1;
@@ -103,8 +116,12 @@ for i=1:nnA
   if(abs(fyA(i))>0.0)
       nforce = nforce+1;
   end
-  ForceA(2*i-1) = BetaxA(i)*fxA(i);
-  ForceA(2*i)   = BetayA(i)*fyA(i);
+if(abs(fzA(i))>0.0)
+      nforce = nforce+1;
+  end
+  ForceA(3*i-2) = BetaxA(i)*fxA(i);
+  ForceA(3*i-1)   = BetayA(i)*fyA(i);
+  ForceA(3*i)   = BetazA(i)*fzA(i);
 end
 nE = 0; %number of elements with uncertain E
 for i=1:ne
@@ -118,13 +135,18 @@ for e=1:ne
 end
 fx = zeros(nn,1);
 fy = zeros(nn,1);
+fz = zeros(nn,1);
 loadflag = zeros(nnA,1);
 for i=1:nnA
     loadflag(i) = 0;
-    if(fxA(i)~=0||fyA(i)~=0)
+    if((fxA(i)~=0)||(fyA(i)~=0))||fzA(i) ~=0
         loadflag(i) =1;
     end
 end
+ebenode=zeros(2*ne,1);
+resxEBE=zeros(2*ne,1);
+resyEBE=zeros(2*ne,1);
+reszEBE=zeros(2*ne,1);
 for e=1:ne
    i1 = elementA(e,1); %nodes for assembled model
    i2 = elementA(e,2); 
@@ -134,43 +156,53 @@ for e=1:ne
    ebenode(j2)=i2;
    xEBE(2*e-1) = xA(i1);
    yEBE(2*e-1) = yA(i1);
+   zEBE(2*e-1) = zA(i1);
    xEBE(2*e)   = xA(i2);
    yEBE(2*e)   = yA(i2);
+   zEBE(2*e) =   zA(i2);
    %restraints for EBE model
    resxEBE(2*e-1) = resxA(i1);
    resyEBE(2*e-1) = resyA(i1);
+   reszEBE(2*e-1) = reszA(i1);
    resxEBE(2*e)   = resxA(i2);
    resyEBE(2*e)   = resyA(i2);
+   reszEBE(2*e)   = reszA(i1);
    %forces for EBE model
    if(loadflag(i1)==1)
        fx(j1)=fxA(i1);
        fy(j1)=fyA(i1);
+       fz(j1)=fzA(i1);
        loadflag(i1)=0;
    end
    if(loadflag(i2)==1)
       fx(j2)=fxA(i2);
       fy(j2)=fyA(i2); 
+      fz(j2)=fzA(i2);
       loadflag(i2)=0;
    end
 end
 betaxEBE = zeros(nn,1);
 betayEBE = zeros(nn,1);
+betazEBE = zeros(nn,1);
 %load uncertainty for EBE model
 for i=1:nn
   j=ebenode(i);
   betaxEBE(i) = betaxA(j);
   betayEBE(i) = betayA(j);
+  betazEBE(i) = betazA(j);
 end
 %determining the list of coincident nodes for new approach
 ic = 0;
 for i=1:nn
     code = 0;
-    xi = xEBE(i); %x and y coordinates of i'th node
+    xi = xEBE(i); %coordinates of i'th node
     yi = yEBE(i); 
+    zi = zEBE(i);
     for j=1:nn
-              xj = xEBE(j); %x and y coordinates of j'th node
+              xj = xEBE(j); %coordinates of j'th node
               yj = yEBE(j); 
-              if (abs(xi-xj)<1.0e-6)&&(abs(yi-yj)<1.0e-6)
+               zj = zEBE(j);
+              if (abs(xi-xj)<1.0e-6)&&(abs(yi-yj)<1.0e-6)&&(abs(zi-zj)<1.0e-6)
                 %for coincident nodes which are not hinged nodes
                 if(code==0)
                     ic = ic+1;
@@ -181,7 +213,7 @@ for i=1:nn
               end
     end
 end
-icvec;
+icvec
 k=0;
 codevec = zeros(ic,1);
 for i=1:ic
@@ -208,8 +240,9 @@ for i=1:ic
     end
 end
 list
-[nf i2]  = size(list);
-codefree = ones(nf,2); % BC at common nodes,unrestrained by default
+codevec
+[nf i2]  = size(list)
+codefree = ones(nf,3); % BC at common nodes,unrestrained by default
 for i=1:nf  %loop on the total number of free nodes
    j1 = ebenode(list(i,1));
    if(resxA(j1)==0)
@@ -217,6 +250,9 @@ for i=1:nf  %loop on the total number of free nodes
    end
    if(resyA(j1)==0)
         codefree(i,2)=0; %free node is restrained along Y direction
+   end
+   if(reszA(j1)==0)
+        codefree(i,3)=0; %free node is restrained along Z direction
    end
 end
 codefree;
@@ -236,7 +272,7 @@ for i=1:nf
     end
 end
 elemlist;
-ndof1 = 2*nf; %global dof for free nodes
+ndof1 = 3*nf; %global dof for free nodes  % check 3 or 2
 nzeros = 0;
 for i=1:nf
     for j=1:i2
@@ -255,35 +291,44 @@ for e=1:ne
   connA=elementA(e,:);
   x1 = xEBE(conn(1));
   y1 = yEBE(conn(1));
+  z1 = zEBE(conn(1));
   x2 = xEBE(conn(2));
   y2 = yEBE(conn(2));
-  le=sqrt((x2-x1)^2+(y2-y1)^2);
+  z2 = zEBE(conn(2));
+  le=sqrt((x2-x1)^2+(y2-y1)^2+(z2-z1)^2);
   Le(e) = le;
-  c=(x2-x1)/le;
-  s=(y2-y1)/le;
-  cosine(e) = c;
-  sine(e) = s;
-  dof=[2*conn(1)-1 2*conn(1) 2*conn(2)-1 2*conn(2)] ;
-  dofA=[2*connA(1)-1 2*connA(1) 2*connA(2)-1 2*connA(2)];
+  Cx=(x2-x1)/le;
+  Cy=(y2-y1)/le;
+  Cz=(z2-z1)/le;
+  cosine(e) = Cx;
+  sine(e) = Cy;
+  sine2(e) = Cz;    %see why needed
+  
+  dof=[3*conn(1)-2 3*conn(1)-1 3*conn(1) 3*conn(2)-2 3*conn(2)-1 3*conn(2)];
+  dofA=[3*connA(1)-2 3*connA(1)-1 3*connA(1) 3*connA(2)-2 3*connA(2)-1 3*connA(2)];
    %____________global transformation matrix_________________
-  R=[ c -s  0  0;
-      s  c  0  0;
-      0  0  c -s;
-      0  0  s  c];
-  a(e,dof)= eye(4)*[1 0 -1  0]'; % RLM I do not see why we need the identy matrix
-  aA(e,dofA)= R*[1 0 -1  0]'; % again   why not just vector [c s -c -c]'
+  % R=[ c -s  0  0;
+  %     s  c  0  0;
+  %     0  0  c -s;
+  %     0  0  s  c];
+  % a(e,dof)= eye(4)*[1 0 -1  0]'; % RLM I do not see why we need the identy matrix
+  % aA(e,dofA)= R*[1 0 -1  0]'; % again   why not just vector [c s -c -c]'
+   a(e,dof) = [ 1 0 0 -1 0 0];
+  aA(e,dofA)= [Cx Cy Cz -Cx -Cy -Cz];
   %____________diagonal member matrix_______________________
-  ki(e)=A(e)*(E(e)*Alfa(e))/le;       
-  Ki(e,e)=diag([ki(e)],0);
-  Ko = mid(Ki);
+  % elemiminate ki and only use Ki  RLM 5/26/2023
+  %Ki(e,e)=diag(A(e)*(E(e)*Alfa(e))/le);
+ % Ko = mid(Ki);
   %obtaining global stiffness matrix using tranformation matrix  RLM should
   %remove the ,0 inthe diag calls as it defaults to being on the diagonal
- Doo(e,e)=diag([A(e)*E(e)/le],0); 
- Do(e,e)=diag([A(e)*E(e)/le]*infsup(1.0,1.0),0);
- D(e,e)=diag([(A(e)*E(e)/le)*Alfa(e)],0);
+ Doo(e,e)=diag([A(e)*E(e)/le]); 
+ Do(e,e)=diag([A(e)*E(e)/le]*infsup(1.0,1.0));
+ D(e,e)=diag([(A(e)*E(e)/le)*Alfa(e)]);   %I do not see any difference between D and Ki ?? RLM 5/26/2023
+  % I replaced all Ki with D RLM 5/26/23
  DoD(e,e)=Do(e,e)-D(e,e) ; 
- Dom(e,e) = diag([(E(e)*A(e)/le)*(1+(alfaA(e)*gammao(e)))],0);
+ Dom(e,e) = diag([(E(e)*A(e)/le)*(1+(alfaA(e)*gammao(e)))],0);  
 end
+
 %----------------formulation of the new approach-------------------------
 [nf i2]  = size(list);
 for i=1:nf
@@ -291,8 +336,9 @@ for i=1:nf
     list1 = list1';
     for j=1:size(list1)
       j1= list1(j);
-      forceEBE(2*i-1)  = infsup(1-betaxEBE(j1),1+betaxEBE(j1))*fx(j1);
-      forceEBE(2*i)    = infsup(1-betayEBE(j1),1+betayEBE(j1))*fy(j1);
+      forceEBE(3*i-2)  = infsup(1-betaxEBE(j1),1+betaxEBE(j1))*fx(j1);
+      forceEBE(3*i-1)    = infsup(1-betayEBE(j1),1+betayEBE(j1))*fy(j1);
+      forceEBE(3*i  )    = infsup(1-betazEBE(j1),1+betazEBE(j1))*fz(j1);
       break;
     end
 end
@@ -327,9 +373,10 @@ for i=1:nrows
                       farnode = 2*e-1;
                   end
                   ilamda = ilamda+1;
-                  cons(ilamda,2*lnode-1) = 1.0;
-                  cons(ilamda,ndof+2*i-1)= -cosine(e); 
-                  cons(ilamda,ndof+2*i)  = -sine(e); 
+                  cons(ilamda,3*lnode-2) = 1.0;
+                  cons(ilamda,ndof+3*i-2)= -cosine(e); 
+                  cons(ilamda,ndof+3*i-1)  = -sine(e); 
+                  cons(ilamda,ndof+3*i)  = -sine2(e); 
                end
         end  
     end
@@ -351,25 +398,33 @@ for i=1:nlamda+2*ne
       %cmat
    end
 end
+% make cmat symmetric ???
 mat = cmat';
 cmat = cmat+mat;
 %-------------------------------------------------------------------
 %application of boundary conditions
 %-------------------------------------------------------------------
 %NOTE : for the 4x4 local stiffness matrix of truss element, the dof
-%corresponding to local y axis are restrained
+%corresponding to local y and axis are restrained
 bn1 = 0;
 resy2 = resyEBE;
+resz2 = reszEBE;
 for i=1:nn
     resyEBE(i) = 0;
+    reszEBE(i) = 0;
 end
 for i=1:nn
    if(resyEBE(i)==0)
         bn1 = bn1+1;
-        ifix2(bn1) = 2*i;
+        ifix2(bn1) = 3*i-1;
+   end
+   if(reszEBE(i)==0)
+        bn1 = bn1+1;
+        ifix2(bn1) = 3*i;
    end
 end
 resyEBE=resy2;
+reszEBE=resz2;
 %-------------------------------------------------------------------
 %NOTE : now boundary conditions are imposed at the free nodes along global dof
 bn2 = 0;
@@ -378,22 +433,29 @@ for i=1:nf
     if(codefree(i,1)==0)  %restrained free node
          if(resxA(j)==0)
            bn2 = bn2+1;
-           ifix3(bn2) = ndof+ 2*i-1;
+           ifix3(bn2) = ndof+ 3*i-2;
          end
     end
     if(codefree(i,2)==0)  %restrained free node
         if(resyA(j)==0)
           bn2 = bn2+1;
-          ifix3(bn2) = ndof+ 2*i;
+          ifix3(bn2) = ndof+ 3*i-1;
+        end
+    end
+    if(codefree(i,3)==0)  %restrained free node
+        if(reszA(j)==0)
+          bn2 = bn2+1;
+          ifix3(bn2) = ndof+ 3*i;
         end
     end
 end
 %------------------------------------------------------------------------
-K = a'*Ki*a;
+%K = a'*Ki*a;  %replace Ki with D
+K = a'*D*a;
 K = K+cmat;
 Km = a'*Dom*a;
 Km = Km+mid(cmat);  %Changed to mid for Km to be non interval
-% imposing restraint along local y axes
+% imposing restraint along local y and zaxes
 K(ifix2,:)=zeros(bn1,ndofnew);
 K(:,ifix2)=zeros(ndofnew,bn1);
 K(ifix2,ifix2)=eye(length(ifix2));
@@ -505,9 +567,12 @@ Alfax = diag(DoD);
 for i = 1:10
     %vss=hull(((a*Cm)*Force-((a*Cm*a'*Ko)*diag(vss)*LambdaE*Del_alpha)),vss);
     vg = hull(((a*C)*Force - (((a*C*a')*diag(vg))*LambdaE)*Alfax),vg);
-    vs = hull(((a*Cm)*Force-((a*Cm*a'*Ko)*diag(vs)*LambdaE*Del_alpha)+((a*Cm*a'*Ko)*diag(vs)*LambdaG*Del_gamma)),vs);
+   % replace Ko with Do  vs = hull(((a*Cm)*Force-((a*Cm*a'*Ko)*diag(vs)*LambdaE*Del_alpha)+((a*Cm*a'*Ko)*diag(vs)*LambdaG*Del_gamma)),vs);
+    vs = hull(((a*Cm)*Force-((a*Cm*a'*Do)*diag(vs)*LambdaE*Del_alpha)+((a*Cm*a'*Do)*diag(vs)*LambdaG*Del_gamma)),vs);
 end
-u1s = (Cm*Force-((Cm*a'*Ko)*diag(vs)*LambdaE*Del_alpha)+((Cm*a'*Ko)*diag(vs)*LambdaG*Del_gamma));
+% replace Ko with Do RLM 5/26/23
+% u1s = (Cm*Force-((Cm*a'*Ko)*diag(vs)*LambdaE*Del_alpha)+((Cm*a'*Ko)*diag(vs)*LambdaG*Del_gamma));
+u1s = (Cm*Force-((Cm*a'*Do)*diag(vs)*LambdaE*Del_alpha)+((Cm*a'*Do)*diag(vs)*LambdaG*Del_gamma));
 %u1ss = (Cm*Force-((Cm*a'*Ko)*diag(vss)*LambdaE*Del_alpha));
 ug = C*Force + C*a'*diag(vg)*LambdaE*Alfax; 
 IFEAtime = toc
@@ -583,17 +648,18 @@ end
 % for i=1:ne
 %     fprintf(1,'element=%d [%12.5f,%12.5f]  [%12.5f,%12.5f]\n',i,inf(eforce(i,1)),sup(eforce(i,1)),inf(eforce(i,2)),sup(eforce(i,2)));
 % end
-mat = [  1   0   -1    0
-         0   0    0    0
-        -1   0    1    0
-         0   0    0    0]; 
+% %mat = [  1   0   -1    0
+%          0   0    0    0
+%         -1   0    1    0
+%          0   0    0    0]; 
 %locations of non-zero loads in assembled force vector
  j=0;
  intforce = 0;
  for i=1:ndof1
+   
     if(mid(ForceA(i)~=0))
         j=j+1;
-        loc(j)=i;
+        locx(j)=i;
     end
     if((sup(ForceA(i))-inf(ForceA(i)))>0)
         intforce = intforce+1;
@@ -699,7 +765,7 @@ for ncF=0:ncombF
                 P1(i)=0;
             end
             for i=1:nforce
-                j=loc(i); %location of dof carrying non-zero load
+                j=locx(i); %location of dof carrying non-zero load
                if(combF(i)==0)  %set load to lower bound of ForceA
                     P1(j)= inf(ForceA(j));
                else
@@ -708,18 +774,20 @@ for ncF=0:ncombF
             end
             for e=1:ne
              conn1=elementA(e,:);
-             dof2(:,:,e)=[2*conn1(1)-1 2*conn1(1) 2*conn1(2)-1 2*conn1(2)];
+             dof2(:,:,e)=[3*conn1(1)-2 3*conn1(1)-1 3*conn1(1) 3*conn1(2)-2 3*conn1(2)-1 3*conn1(2)];
              x1=xA(conn1(1));
              y1=yA(conn1(1));
+             z1=zA(conn1(1));
              x2=xA(conn1(2));
              y2=yA(conn1(2));
-             le=sqrt((x2-x1)^2+(y2-y1)^2);
-             c=(x2-x1)/le;
-             s=(y2-y1)/le; 
-             T(:,:,e)= [c  s   0  0;
-                       -s  c  0  0;
-                        0  0  c  s;
-                        0  0 -s  c];
+             z2=zA(conn1(2));
+             le=sqrt((x2-x1)^2+(y2-y1)^2+(z2-z1)^2);
+             Cx=(x2-x1)/le;
+             Cy=(y2-y1)/le; 
+             Cz=(z2-z1)/le; 
+             %changed T to a b matrix 
+             T(:,:,e)= [-Cx  -Cy -Cz  Cx Cy Cz ];
+                      
              % change to A1 for groups
              kc(e)=A1(e)*(E1(e))/le; 
             end
@@ -737,19 +805,19 @@ for ncF=0:ncombF
             for e=1:ne
               ke1 = kc(e)*mat;  
               ucx = ucvec(dof2(:,:,e));  %changed to ucx to not repeat uc
-              g1(e,:) = ke1*T(:,:,e)*ucx;
+              g1(e) = kc(e)*T(:,:,e)*ucx;
               %changed to use A1 to account for groups
-              strain1(e,:) = g1(e,:)/(A1(e)*E1(e));
+              strain1(e) = g1(e)/(A1(e)*E1(e));
               if(count==1)
-                  gmin(:,e)= g1(e,3);
-                  gmax(:,e)= g1(e,3);
-                  strainmin(:,e) = strain1(e,3);
-                  strainmax(:,e) = strain1(e,3);
+                  gmin(e)= g1(e);
+                  gmax(e)= g1(e);
+                  strainmin(e) = strain1(e);
+                  strainmax(e) = strain1(e);
               else
-                gmin(:,e) = min(g1(e,3),gmin(:,e));
-                gmax(:,e) = max(g1(e,3),gmax(:,e));
-                strainmin(:,e) = min(strain1(e,3),strainmin(:,e));
-                strainmax(:,e) = max(strain1(e,3),strainmax(:,e));
+                gmin(e) = min(g1(e),gmin(e));
+                gmax(e) = max(g1(e),gmax(e));
+                strainmin(e) = min(strain1(e),strainmin(e));
+                strainmax(e) = max(strain1(e),strainmax(e));
               end
             end
           if(count==1)
@@ -791,9 +859,9 @@ end   %end of element loop
  end
 
 fprintf(fid,'Nodal information - Assembled  model\n');
-fprintf(fid,'Node   X      Y     Restraints       Fx          Fy           beta-x    beta-y\n');
+fprintf(fid,'Node   X      Y       Z       Restraints       Fx          Fy          Fz           beta-x    beta-y   beta-y\n');
 for i=1:nnA
-     fprintf(fid,'%2d   %4.1f   %4.1f    %d    %d     %9.1f    %9.1f           %5.3f      %5.3f\n',i,xA(i),yA(i),resxA(i),resyA(i),fxA(i),fyA(i),betaxA(i),betayA(i)); 
+     fprintf(fid,'%2d   %4.1f   %4.1f   %4.1f    %d  %d  %d     %9.1f    %9.1f      %9.1f         %5.3f      %5.3f      %5.3f\n',i,xA(i),yA(i),zA(i),resxA(i),resyA(i),reszA(i),fxA(i),fyA(i),fzA(i),betaxA(i),betayA(i),betazA(i)); 
 end
 fprintf(fid,'Element information- Assembled model\n');
 fprintf(fid,'Element    Nodes    Area            E        alfa      group no.    group gamma \n');
@@ -860,8 +928,8 @@ fprintf(fid,'Element    node                     x- displacement                
 for e=1:ne
   n1 = 2*e-1; n2 = 2*e; %these are ebe nodes
   m1 = ebenode(n1); m2 = ebenode(n2); %these are the nodes in assembled model
-  fprintf(fid,'%2d          %d    [%16.10e,%16.10e] [%16.10e,%16.10e]\n',e,m1,inf(us(2*n1-1)),sup(us(2*n1-1)),inf(us(2*n1)),sup(us(2*n1)));
-  fprintf(fid,'            %d    [%16.10e,%16.10e] [%16.10e,%16.10e]\n',m2,inf(us(2*n2-1)),sup(us(2*n2-1)),inf(us(2*n2)),sup(us(2*n2)));
+  fprintf(fid,'%2d          %d   [%16.10e,%16.10e] [%16.10e,%16.10e] [%16.10e,%16.10e]\n',e,m1,inf(us(3*n1-2)),sup(us(3*n1-2)),inf(us(3*n1-1)),sup(us(3*n1-1)),inf(us(2*n1)),sup(us(2*n1)));
+  fprintf(fid,'            %d    [%16.10e,%16.10e] [%16.10e,%16.10e] [%16.10e,%16.10e]\n',m2,inf(us(3*n2-2)),sup(us(3*n2-2)),inf(us(3*n2-1)),sup(us(3*n2-1)),inf(us(3*n2)),sup(us(3*n2)));
 end 
 %----------------------------------------------------------------
 if(option==1) %comb. solution is  chosen
@@ -874,11 +942,11 @@ if(option==1) %comb. solution is  chosen
        n2 = 2*e;  
        j1 = ebenode(n1);
        j2 = ebenode(n2);
-       ucomb(2*n1-1) = uc(2*j1-1); ucomb(2*n1)   = uc(2*j1); %at first node of element
-       ucomb(2*n2-1) = uc(2*j2-1); ucomb(2*n2)   = uc(2*j2); %at second node of element
+        ucomb(3*n1-2) = uc(3*j1-2);ucomb(3*n1-1) = uc(3*j1-1); ucomb(3*n1)   = uc(3*j1); %at first node of element
+       ucomb(3*n2-2) = uc(3*j2-2);ucomb(3*n2-1) = uc(3*j2-1); ucomb(3*n2)   = uc(3*j2); %at second node of element
        %changed output to file and not one  RLM 9/6/22
-       fprintf(fid,'%2d          %d    [%16.10e,%16.10e] [%16.10e,%16.10e]\n',e,j1,inf(ucomb(2*n1-1)),sup(ucomb(2*n1-1)),inf(ucomb(2*n1)),sup(ucomb(2*n1)));
-       fprintf(fid,'            %d    [%16.10e,%16.10e] [%16.10e,%16.10e]\n',j2,inf(ucomb(2*n2-1)),sup(ucomb(2*n2-1)),inf(ucomb(2*n2)),sup(ucomb(2*n2)));
+       fprintf(fid,'%2d          %d    [%16.10e,%16.10e] [%16.10e,%16.10e] [%16.10e,%16.10e]\n',e,j1,inf(ucomb(3*n1-2)),sup(ucomb(3*n1-2)),inf(ucomb(3*n1-1)),sup(ucomb(3*n1-1)),inf(ucomb(3*n1)),sup(ucomb(3*n1)));
+       fprintf(fid,'            %d    [%16.10e,%16.10e] [%16.10e,%16.10e] [%16.10e,%16.10e]\n',j2,inf(ucomb(3*n2-2)),sup(ucomb(3*n2-2)),inf(ucomb(3*n2-1)),sup(ucomb(3*n2-1)),inf(ucomb(3*n2)),sup(ucomb(2*n2)));
      end
 end
 if(option==2)
@@ -897,8 +965,10 @@ for e=1:ne
     m1 = ebenode(n1); m2 = ebenode(n2); 
     d1x = 2*n1-1; %dof1
     d1y = 2*n1;   %dof2
+    %d1z = 3*n1
     d2x = 2*n2-1; %dof3
     d2y = 2*n2;   %dof4
+    %d2z = 3*n2;
     %widths for present approach  (Change to group results RLM 9/8/22)
     numerb1 = sup(us(d1x))-inf(us(d1x));%dof1
     numerb2 = sup(us(d1y))-inf(us(d1y));%dof2
